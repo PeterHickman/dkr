@@ -8,7 +8,7 @@ You can connect with `dkr connect` which will open a bash shell
 
 Finally the container can be stopped with `dkr stop` and deleted with `dkr delete`
 
-For the confident you can build, run and connect all in one go `dkr build run connect` ad each command will be executed providing the previous command did not fail
+For the confident you can build, run and connect all in one go `dkr build run connect` and each command will be executed providing the previous command did not fail. `dkr build run connect stop delete` is also a thing :P
 
 If `dokter` is installed the `lint` command will do a simple audit of your `Dockerfile`. I have included this in hopes that the audit will improve over time
 
