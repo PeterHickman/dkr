@@ -1,0 +1,169 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+# encoding: UTF-8
+
+begin
+  require 'colorize'
+rescue LoadError
+  puts "Gem missing, please install `gem install colorize' for fancy ansi terminal colours"
+  exit 1
+end
+
+def dockerignore
+  ignores = []
+
+  File.open('Dockerfile', 'r').each do |line|
+    ignores += line.chomp.split(/\s+/)[1..-1] if line.start_with?('#IGNORE')
+  end
+
+  return if ignores.empty?
+
+  if File.exist?('.dockerignore')
+    File.open('.dockerignore', 'r').each do |line|
+      line.chomp!
+      ignores << line unless ignores.include?(line)
+    end
+  end
+
+  f = File.new('.dockerignore', 'w')
+  ignores.each { |line| f.puts line }
+  f.close
+end
+
+def exec(cmd)
+  puts "    #{cmd}".green
+  system(cmd)
+end
+
+def find(cmd, name)
+  `docker container #{cmd}`.split("\n").each do |line|
+    x = line.split(/\s+/)[1]
+    return true if name == x
+  end
+
+  false
+end
+
+def usage(name)
+  puts 'dkr build|lint|scan|run|connect|stop|delete'
+  puts
+  puts "  build   - Builds the image [#{name}] from Dockerfile"
+  puts '  lint    - Lints the Dockerfile'
+  puts '  scan    - Scan the image for vulnerabilities, scary!!!'
+  puts "  run     - Runs the container [#{name}] daemonised"
+  puts "  connect - Connect to the container [#{name}]"
+  puts "  stop    - Stops container [#{name}]"
+  puts "  delete  - Delete container [#{name}]"
+  puts ''
+  puts 'You can chain commands => dkr build run connect'
+
+  exit 1
+end
+
+def run_container(name)
+  ports = []
+
+  File.open('Dockerfile', 'r').each do |line|
+    ports += line.chomp.split(/\s+/)[1..-1].map(&:to_i) if line.start_with?('EXPOSE')
+  end
+
+  x = %w[docker container run -d --name]
+  x << name
+  ports.each do |port|
+    x << "-p #{port}:#{port}"
+  end
+  x << name
+
+  puts "==> Running #{name.blue}".bold
+
+  exec(x.join(' '))
+end
+
+def build_container(name)
+  dockerignore
+
+  puts "==> Building #{name.blue}".bold
+  exec("docker image build -t #{name} .")
+end
+
+def connect_container(name)
+  puts "==> Connecting to #{name.blue}".bold
+  exec("docker container exec -it #{name} /bin/bash")
+  true
+end
+
+def stop_container(name)
+  if find('ps', name)
+    puts "==> Stopping #{name.blue}".bold
+    exec("docker container stop #{name}")
+  else
+    puts "==> #{name.blue} is not running".bold
+  end
+end
+
+def delete_container(name)
+  if find('ls -a', name)
+    puts "==> Deleting #{name.blue}".bold
+    exec("docker container rm --force #{name}")
+  else
+    puts "==> #{name.blue} is not there".bold
+  end
+end
+
+def lint_dockerfile(name)
+  r = system('which dokter > /dev/null')
+  if r
+    puts "==> Linting Dockerfile in #{name.blue}".bold
+
+    exec('dokter -d Dockerfile')
+  else
+    puts "[dokter] is not installed. Try 'pip3 install --user dokter'".blue
+    exit 1
+  end
+
+  true
+end
+
+def scan(name)
+  r = system('which trivy > /dev/null')
+  if r
+    puts "==> Scanning #{name.blue} for vulnerabilities".bold
+
+    exec("trivy --security-checks vuln image #{name}:latest")
+  else
+    puts "[trivy] is not installed. Try 'brew install aquasecurity/trivy/trivy'".blue
+    exit 1
+  end
+
+  true
+end
+
+name = File.basename(Dir.pwd)
+
+usage(name) if ARGV.size.zero?
+
+unless File.exist?('Dockerfile')
+  puts 'There is no Dockerfile here'.red
+  exit 1
+end
+
+ARGV.each do |cmd|
+  cmd = cmd.downcase
+
+  case cmd
+  when 'build' then   r = build_container(name)
+  when 'run' then     r = run_container(name)
+  when 'connect' then r = connect_container(name)
+  when 'stop' then    r = stop_container(name)
+  when 'delete' then  r = delete_container(name)
+  when 'lint' then    r = lint_dockerfile(name)
+  when 'scan' then    r = scan(name)
+  else
+    usage(name)
+  end
+
+  if r == false
+    puts 'Something went wrong'.red
+    exit 1
+  end
+end
