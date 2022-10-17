@@ -9,7 +9,7 @@ rescue LoadError
   exit 1
 end
 
-def dockerignore
+def dockerfile_ignore
   ignores = []
 
   File.open('Dockerfile', 'r').each do |line|
@@ -28,6 +28,26 @@ def dockerignore
   f = File.new('.dockerignore', 'w')
   ignores.each { |line| f.puts line }
   f.close
+end
+
+def dockerfile_expose
+  ports = []
+
+  File.open('Dockerfile', 'r').each do |line|
+    ports += line.chomp.split(/\s+/)[1..-1].map(&:to_i) if line.start_with?('EXPOSE')
+  end
+
+  ports
+end
+
+def dockerfile_volumes
+  volumes = []
+
+  File.open('Dockerfile', 'r').each do |line|
+    volumes << line.chomp.split(/\s+/, 2).last if line.start_with?('#VOLUME')
+  end
+
+  volumes
 end
 
 def exec(cmd)
@@ -61,17 +81,12 @@ def usage(name)
 end
 
 def run_container(name)
-  ports = []
-
-  File.open('Dockerfile', 'r').each do |line|
-    ports += line.chomp.split(/\s+/)[1..-1].map(&:to_i) if line.start_with?('EXPOSE')
-  end
-
   x = %w[docker container run -d --name]
   x << name
-  ports.each do |port|
-    x << "-p #{port}:#{port}"
-  end
+
+  dockerfile_expose.each { |port| x << "-p #{port}:#{port}" }
+  dockerfile_volumes.each { |volume| x << "-v #{volume}" }
+
   x << name
 
   puts "==> Running #{name.blue}".bold
@@ -80,7 +95,7 @@ def run_container(name)
 end
 
 def build_container(name)
-  dockerignore
+  dockerfile_ignore
 
   puts "==> Building #{name.blue}".bold
   exec("docker image build -t #{name} .")
