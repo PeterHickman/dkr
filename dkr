@@ -34,7 +34,7 @@ def dockerfile_expose
   ports = []
 
   File.open('Dockerfile', 'r').each do |line|
-    ports += line.chomp.split(/\s+/)[1..-1].map(&:to_i) if line.start_with?('EXPOSE')
+    ports += line.chomp.split(/\s+/)[1..-1] if line.start_with?('EXPOSE')
   end
 
   ports
@@ -84,7 +84,14 @@ def run_container(name)
   x = %w[docker container run -d --name]
   x << name
 
-  dockerfile_expose.each { |port| x << "-p #{port}:#{port}" }
+  dockerfile_expose.each do |port|
+    if port.include?(':')
+      x << "-p #{port}"
+    else
+      x << "-p #{port}:#{port}"
+    end
+  end
+
   dockerfile_volumes.each { |volume| x << "-v #{volume}" }
 
   x << name
