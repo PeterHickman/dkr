@@ -1,0 +1,66 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+def usage(cmd)
+  puts
+
+  if cmd
+    puts "Unknown command [#{cmd}]"
+    puts
+  end
+
+  puts 'dcctl up|down|build'
+  puts '    up - bring up the services in docker-compose.yaml'
+  puts '    down - take down the services in docker-compose.yaml'
+  puts '    build - build images from the projects that have Dockerfiles'
+
+  exit 1
+end
+
+compose_found = File.exist?('docker-compose.yaml')
+
+found = compose_found ? 'found' : 'not found'
+puts "docker-compose.yaml file #{found}"
+puts
+
+dockerfiles = Dir['**/*/Dockerfile'].map { |file| File.dirname(file) }
+
+if dockerfiles.any?
+  puts 'Projects with Dockerfiles'
+  dockerfiles.each do |proj|
+    puts "    #{proj}"
+  end
+else
+  puts '==> No projects found'
+end
+
+unless compose_found || dockerfiles.any?
+  puts 'Nothing to work with'
+  exit 1
+end
+
+cmd = ARGV.shift
+case cmd
+when 'build'
+  if dockerfiles.any?
+    dockerfiles.each do |dir|
+      system("cd #{dir}; docker image build -t #{dir} .")
+    end
+  else
+    puts "There are no Dockerfile's to build"
+  end
+when 'up'
+  if compose_found
+    system('docker compose --file docker-compose.yaml up --detach')
+  else
+    puts 'There is no docker-compose.yaml file available'
+  end
+when 'down'
+  if compose_found
+    system('docker compose --file docker-compose.yaml down')
+  else
+    puts 'There is no docker-compose.yaml file available'
+  end
+else
+  usage(cmd)
+end

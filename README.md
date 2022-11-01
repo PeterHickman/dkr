@@ -19,3 +19,7 @@ If `trivy` is installed the `scan` command will provide a vulnerability report f
 One minor addition I have added is the `#IGNORE` command for the `Dockerfile`. This will add the arguments to the `.dockerignore` file so you can make sure that all the information needed to build a docker image is in one place
 
 And another one is `#VOLUME xxx` which will add a `-v xxx` argument when running the container
+
+# dcctl
+
+Another little tool to build images in a project and handle the `docker-compose.yaml` file
