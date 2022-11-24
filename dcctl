@@ -1,6 +1,19 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'fileutils'
+
+TARGET='/Users/peterhickman/Documents/dockerised'
+
+def create_dir(dir)
+  if Dir.exist?(dir)
+    puts "    #{dir} exists"
+  else
+    puts "    Creating #{dir}"
+    FileUtils.mkdir_p(dir)
+  end
+end
+
 def usage(cmd)
   puts
 
@@ -15,6 +28,54 @@ def usage(cmd)
   puts '    build - build images from the projects that have Dockerfiles'
 
   exit 1
+end
+
+def cmd_build(dockerfiles)
+  if dockerfiles.any?
+    dockerfiles.each do |dir|
+      system("cd #{dir}; docker image build -t #{dir} .")
+    end
+  else
+    puts "There are no Dockerfile's to build"
+  end
+end
+
+def cmd_up(compose_found)
+  if compose_found
+    system('docker compose --file docker-compose.yaml up --detach')
+  else
+    puts 'There is no docker-compose.yaml file available'
+  end
+end
+
+def cmd_down(compose_found)
+  if compose_found
+    system('docker compose --file docker-compose.yaml down')
+  else
+    puts 'There is no docker-compose.yaml file available'
+  end
+end
+
+def cmd_setup(dockerfiles)
+  project = File.basename(Dir.pwd)
+
+  puts "Setting up #{project}"
+
+  create_dir("#{TARGET}/#{project}")
+  create_dir("#{TARGET}/#{project}/config")
+  create_dir("#{TARGET}/#{project}/log")
+
+  config = "#{TARGET}/#{project}/config"
+
+  dockerfiles.each do |dir|
+    if File.exist?("#{dir}/config")
+      Dir["#{dir}/config/*"].each do |x|
+        name = File.basename(x)
+        puts "    copying #{x} to #{config}/#{name}"
+        FileUtils.cp(x, "#{config}/#{name}")
+      end
+    end
+  end
 end
 
 compose_found = File.exist?('docker-compose.yaml')
@@ -33,6 +94,7 @@ if dockerfiles.any?
 else
   puts '==> No projects found'
 end
+puts
 
 unless compose_found || dockerfiles.any?
   puts 'Nothing to work with'
@@ -42,25 +104,13 @@ end
 cmd = ARGV.shift
 case cmd
 when 'build'
-  if dockerfiles.any?
-    dockerfiles.each do |dir|
-      system("cd #{dir}; docker image build -t #{dir} .")
-    end
-  else
-    puts "There are no Dockerfile's to build"
-  end
-when 'up'
-  if compose_found
-    system('docker compose --file docker-compose.yaml up --detach')
-  else
-    puts 'There is no docker-compose.yaml file available'
-  end
-when 'down'
-  if compose_found
-    system('docker compose --file docker-compose.yaml down')
-  else
-    puts 'There is no docker-compose.yaml file available'
-  end
+  cmd_build(dockerfiles)
+when 'up', 'start'
+  cmd_up(compose_found)
+when 'down', 'stop'
+  cmd_down(compose_found)
+when 'setup'
+  cmd_setup(dockerfiles)
 else
   usage(cmd)
 end
