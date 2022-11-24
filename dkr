@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
-# encoding: UTF-8
 
 begin
   require 'colorize'
@@ -85,11 +84,11 @@ def run_container(name)
   x << name
 
   dockerfile_expose.each do |port|
-    if port.include?(':')
-      x << "-p #{port}"
-    else
-      x << "-p #{port}:#{port}"
-    end
+    x << if port.include?(':')
+           "-p #{port}"
+         else
+           "-p #{port}:#{port}"
+         end
   end
 
   dockerfile_volumes.each { |volume| x << "-v #{volume}" }
@@ -173,13 +172,13 @@ ARGV.each do |cmd|
   cmd = cmd.downcase
 
   case cmd
-  when 'build' then   r = build_container(name)
-  when 'run' then     r = run_container(name)
+  when 'build' then r = build_container(name)
+  when 'run' then r = run_container(name)
   when 'connect' then r = connect_container(name)
-  when 'stop' then    r = stop_container(name)
-  when 'delete' then  r = delete_container(name)
-  when 'lint' then    r = lint_dockerfile(name)
-  when 'scan' then    r = scan(name)
+  when 'stop' then r = stop_container(name)
+  when 'delete' then r = delete_container(name)
+  when 'lint' then r = lint_dockerfile(name)
+  when 'scan' then r = scan(name)
   else
     usage(name)
   end

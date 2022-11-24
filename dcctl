@@ -3,7 +3,7 @@
 
 require 'fileutils'
 
-TARGET='/Users/peterhickman/Documents/dockerised'
+TARGET = '/Users/peterhickman/Documents/dockerised'
 
 def create_dir(dir)
   if Dir.exist?(dir)
@@ -68,12 +68,12 @@ def cmd_setup(dockerfiles)
   config = "#{TARGET}/#{project}/config"
 
   dockerfiles.each do |dir|
-    if File.exist?("#{dir}/config")
-      Dir["#{dir}/config/*"].each do |x|
-        name = File.basename(x)
-        puts "    copying #{x} to #{config}/#{name}"
-        FileUtils.cp(x, "#{config}/#{name}")
-      end
+    next unless File.exist?("#{dir}/config")
+
+    Dir["#{dir}/config/*"].each do |x|
+      name = File.basename(x)
+      puts "    copying #{x} to #{config}/#{name}"
+      FileUtils.cp(x, "#{config}/#{name}")
     end
   end
 end
@@ -103,14 +103,10 @@ end
 
 cmd = ARGV.shift
 case cmd
-when 'build'
-  cmd_build(dockerfiles)
-when 'up', 'start'
-  cmd_up(compose_found)
-when 'down', 'stop'
-  cmd_down(compose_found)
-when 'setup'
-  cmd_setup(dockerfiles)
+when 'build' then cmd_build(dockerfiles)
+when 'up', 'start' then cmd_up(compose_found)
+when 'down', 'stop' then cmd_down(compose_found)
+when 'setup' then cmd_setup(dockerfiles)
 else
   usage(cmd)
 end
