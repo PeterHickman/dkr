@@ -1,19 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'fileutils'
-
-TARGET = '/Users/peterhickman/Documents/dockerised'
-
-def create_dir(dir)
-  if Dir.exist?(dir)
-    puts "    #{dir} exists"
-  else
-    puts "    Creating #{dir}"
-    FileUtils.mkdir_p(dir)
-  end
-end
-
 def usage(cmd)
   puts
 
@@ -56,28 +43,6 @@ def cmd_down(compose_found)
   end
 end
 
-def cmd_setup(dockerfiles)
-  project = File.basename(Dir.pwd)
-
-  puts "Setting up #{project}"
-
-  create_dir("#{TARGET}/#{project}")
-  create_dir("#{TARGET}/#{project}/config")
-  create_dir("#{TARGET}/#{project}/log")
-
-  config = "#{TARGET}/#{project}/config"
-
-  dockerfiles.each do |dir|
-    next unless File.exist?("#{dir}/config")
-
-    Dir["#{dir}/config/*"].each do |x|
-      name = File.basename(x)
-      puts "    copying #{x} to #{config}/#{name}"
-      FileUtils.cp(x, "#{config}/#{name}")
-    end
-  end
-end
-
 compose_found = File.exist?('docker-compose.yaml')
 
 found = compose_found ? 'found' : 'not found'
@@ -106,7 +71,6 @@ case cmd
 when 'build' then cmd_build(dockerfiles)
 when 'up', 'start' then cmd_up(compose_found)
 when 'down', 'stop' then cmd_down(compose_found)
-when 'setup' then cmd_setup(dockerfiles)
 else
   usage(cmd)
 end
