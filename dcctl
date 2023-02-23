@@ -1,6 +1,13 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+NAMES = %w[
+  docker-compose.yaml
+  docker-compose.yml
+  compose.yaml
+  compose.yml
+]
+
 def usage(cmd)
   puts
 
@@ -29,7 +36,7 @@ end
 
 def cmd_up(compose_found)
   if compose_found
-    system('docker compose --file docker-compose.yaml up --detach')
+    system('docker compose --file #{compose_found} up --detach')
   else
     puts 'There is no docker-compose.yaml file available'
   end
@@ -37,16 +44,24 @@ end
 
 def cmd_down(compose_found)
   if compose_found
-    system('docker compose --file docker-compose.yaml down')
+    system('docker compose --file #{compose_found} down')
   else
     puts 'There is no docker-compose.yaml file available'
   end
 end
 
-compose_found = File.exist?('docker-compose.yaml')
+def find_compose
+  NAMES.each do |name|
+    return name if File.exist?(name)
+  end
+
+  nil
+end
+
+compose_found = find_compose
 
 found = compose_found ? 'found' : 'not found'
-puts "docker-compose.yaml file #{found}"
+puts "#{compose_found} file #{found}"
 puts
 
 dockerfiles = Dir['**/*/Dockerfile'].map { |file| File.dirname(file) }
