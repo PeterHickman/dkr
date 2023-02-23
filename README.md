@@ -20,6 +20,8 @@ One minor addition I have added is the `#IGNORE` command for the `Dockerfile`. T
 
 And another one is `#VOLUME xxx` which will add a `-v xxx` argument when running the container
 
+To set a default name that is not the directory that the `Dockerfile` is in use `#NAME other_name`
+
 # dcctl
 
 Another little tool to build images in a project and handle the `docker-compose.yaml` file

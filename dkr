@@ -49,6 +49,19 @@ def dockerfile_volumes
   volumes
 end
 
+def dockerfile_name(default)
+  name = default
+
+  File.open('Dockerfile', 'r').each do |line|
+    if line.start_with?('#NAME')
+      name = line.chomp.split(/\s+/, 2).last
+      break
+    end
+  end
+
+  name
+end
+
 def exec(cmd)
   puts "    #{cmd}".green
   system(cmd)
@@ -160,6 +173,7 @@ def scan(name)
 end
 
 name = File.basename(Dir.pwd)
+name = dockerfile_name(name)
 
 usage(name) if ARGV.size.zero?
 
