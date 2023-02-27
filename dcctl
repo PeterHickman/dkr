@@ -36,7 +36,7 @@ end
 
 def cmd_up(compose_found)
   if compose_found
-    system('docker compose --file #{compose_found} up --detach')
+    system("docker compose --file #{compose_found} up --detach")
   else
     puts 'There is no docker-compose.yaml file available'
   end
@@ -44,7 +44,7 @@ end
 
 def cmd_down(compose_found)
   if compose_found
-    system('docker compose --file #{compose_found} down')
+    system("docker compose --file #{compose_found} down")
   else
     puts 'There is no docker-compose.yaml file available'
   end
