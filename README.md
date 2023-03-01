@@ -22,6 +22,8 @@ And another one is `#VOLUME xxx` which will add a `-v xxx` argument when running
 
 To set a default name that is not the directory that the `Dockerfile` is in use `#NAME other_name`
 
+The set the restart policy use `#RESTART`
+
 # dcctl
 
 Another little tool to build images in a project and handle the `docker-compose.yaml` file
