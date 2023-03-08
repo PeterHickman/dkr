@@ -75,6 +75,15 @@ def dockerfile_restart
   restart
 end
 
+def image_available(name)
+  `docker image ls`.split("\n").each do |line|
+    x = line.split(/s+/)
+    return true if x[0] == name && x[1] == 'latest'
+  end
+
+  false
+end
+
 def exec(cmd)
   puts "    #{cmd}".green
   system(cmd)
@@ -106,27 +115,32 @@ def usage(name)
 end
 
 def run_container(name)
-  x = %w[docker container run -d --name]
-  x << name
+  if image_available(name)
+    x = %w[docker container run -d --name]
+    x << name
 
-  dockerfile_expose.each do |port|
-    x << if port.include?(':')
-           "-p #{port}"
-         else
-           "-p #{port}:#{port}"
-         end
+    dockerfile_expose.each do |port|
+      x << if port.include?(':')
+             "-p #{port}"
+           else
+             "-p #{port}:#{port}"
+           end
+    end
+
+    dockerfile_volumes.each { |volume| x << "-v #{volume}" }
+
+    restart = dockerfile_restart
+    x << "--restart #{restart}" unless restart.nil?
+
+    x << name
+
+    puts "==> Running #{name.blue}".bold
+
+    exec(x.join(' '))
+  else
+    puts "There is no image ".red + "#{name}:latest".blue + " available. Did you build?".red
+    exit 1
   end
-
-  dockerfile_volumes.each { |volume| x << "-v #{volume}" }
-
-  restart = dockerfile_restart
-  x << "--restart #{restart}" unless restart.nil?
-
-  x << name
-
-  puts "==> Running #{name.blue}".bold
-
-  exec(x.join(' '))
 end
 
 def build_container(name)
