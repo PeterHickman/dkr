@@ -8,10 +8,10 @@ rescue LoadError
   exit 1
 end
 
-def dockerfile_ignore
+def dockerfile_ignore(df)
   ignores = []
 
-  File.open('Dockerfile', 'r').each do |line|
+  File.open(df, 'r').each do |line|
     ignores += line.chomp.split(/\s+/)[1..-1] if line.start_with?('#IGNORE')
   end
 
@@ -29,30 +29,30 @@ def dockerfile_ignore
   f.close
 end
 
-def dockerfile_expose
+def dockerfile_expose(df)
   ports = []
 
-  File.open('Dockerfile', 'r').each do |line|
+  File.open(df, 'r').each do |line|
     ports += line.chomp.split(/\s+/)[1..-1] if line.start_with?('EXPOSE')
   end
 
   ports
 end
 
-def dockerfile_volumes
+def dockerfile_volumes(df)
   volumes = []
 
-  File.open('Dockerfile', 'r').each do |line|
+  File.open(df, 'r').each do |line|
     volumes << line.chomp.split(/\s+/, 2).last if line.start_with?('#VOLUME')
   end
 
   volumes
 end
 
-def dockerfile_name(default)
+def dockerfile_name(default, df)
   name = default
 
-  File.open('Dockerfile', 'r').each do |line|
+  File.open(df, 'r').each do |line|
     if line.start_with?('#NAME')
       name = line.chomp.split(/\s+/, 2).last
       break
@@ -62,10 +62,10 @@ def dockerfile_name(default)
   name
 end
 
-def dockerfile_restart
+def dockerfile_restart(df)
   restart = nil
 
-  File.open('Dockerfile', 'r').each do |line|
+  File.open(df, 'r').each do |line|
     if line.start_with?('#RESTART')
       restart = line.chomp.split(/\s+/, 2).last
       break
@@ -77,7 +77,7 @@ end
 
 def image_available(name)
   `docker image ls`.split("\n").each do |line|
-    x = line.split(/s+/)
+    x = line.split(/\s+/)
     return true if x[0] == name && x[1] == 'latest'
   end
 
@@ -114,12 +114,12 @@ def usage(name)
   exit 1
 end
 
-def run_container(name)
+def run_container(name, df)
   if image_available(name)
     x = %w[docker container run -d --name]
     x << name
 
-    dockerfile_expose.each do |port|
+    dockerfile_expose(df).each do |port|
       x << if port.include?(':')
              "-p #{port}"
            else
@@ -127,9 +127,9 @@ def run_container(name)
            end
     end
 
-    dockerfile_volumes.each { |volume| x << "-v #{volume}" }
+    dockerfile_volumes(df).each { |volume| x << "-v #{volume}" }
 
-    restart = dockerfile_restart
+    restart = dockerfile_restart(df)
     x << "--restart #{restart}" unless restart.nil?
 
     x << name
@@ -143,11 +143,11 @@ def run_container(name)
   end
 end
 
-def build_container(name)
-  dockerfile_ignore
+def build_container(name, df)
+  dockerfile_ignore(df)
 
   puts "==> Building #{name.blue}".bold
-  exec("docker image build -t #{name} .")
+  exec("docker image build --file #{df} -t #{name} .")
 end
 
 def connect_container(name)
@@ -174,12 +174,12 @@ def delete_container(name)
   end
 end
 
-def lint_dockerfile(name)
+def lint_dockerfile(name, df)
   r = system('which dokter > /dev/null')
   if r
-    puts "==> Linting Dockerfile in #{name.blue}".bold
+    puts "==> Linting #{df} in #{name.blue}".bold
 
-    exec('dokter -d Dockerfile')
+    exec("dokter -d #{df}")
   else
     puts "[dokter] is not installed. Try 'pip3 install --user dokter'".blue
     exit 1
@@ -202,26 +202,48 @@ def scan(name)
   true
 end
 
-name = File.basename(Dir.pwd)
-name = dockerfile_name(name)
+def parse(l)
+  opts = {}
+  args = []
 
-usage(name) if ARGV.size.zero?
+  while l.any?
+    x = l.shift
 
-unless File.exist?('Dockerfile')
-  puts 'There is no Dockerfile here'.red
+    if x.start_with?('--')
+      y = l.shift
+      opts[x.downcase] = y
+    else
+      args << x
+    end
+  end
+
+  [opts, args]
+end
+
+opts, args = parse(ARGV)
+
+df = opts['--file'] || 'Dockerfile'
+
+unless File.exist?(df)
+  puts "There is no #{df} here".red
   exit 1
 end
 
-ARGV.each do |cmd|
+name = File.basename(Dir.pwd)
+name = dockerfile_name(name, df)
+
+usage(name) if args.size.zero?
+
+args.each do |cmd|
   cmd = cmd.downcase
 
   case cmd
-  when 'build' then r = build_container(name)
-  when 'run' then r = run_container(name)
+  when 'build' then r = build_container(name, df)
+  when 'run' then r = run_container(name, df)
   when 'connect' then r = connect_container(name)
   when 'stop' then r = stop_container(name)
   when 'delete' then r = delete_container(name)
-  when 'lint' then r = lint_dockerfile(name)
+  when 'lint' then r = lint_dockerfile(name, df)
   when 'scan' then r = scan(name)
   else
     usage(name)
