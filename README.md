@@ -22,7 +22,7 @@ And another one is `#VOLUME xxx` which will add a `-v xxx` argument when running
 
 To set a default name that is not the directory that the `Dockerfile` is in use `#NAME other_name`
 
-The set the restart policy use `#RESTART`
+To pass arguments to be used to run a container add them with #RUN
 
 By default `Dockerfile` will be used if it is available in the current directory. The `--file` option will allow you to use another file
 

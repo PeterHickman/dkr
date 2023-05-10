@@ -49,6 +49,16 @@ def dockerfile_volumes(df)
   volumes
 end
 
+def dockerfile_run(df)
+  runtime = []
+
+  File.open(df, 'r').each do |line|
+    runtime << line.chomp.split(/\s+/, 2).last if line.start_with?('#RUN')
+  end
+
+  runtime.join(' ')
+end
+
 def dockerfile_name(default, df)
   name = default
 
@@ -60,19 +70,6 @@ def dockerfile_name(default, df)
   end
 
   name
-end
-
-def dockerfile_restart(df)
-  restart = nil
-
-  File.open(df, 'r').each do |line|
-    if line.start_with?('#RESTART')
-      restart = line.chomp.split(/\s+/, 2).last
-      break
-    end
-  end
-
-  restart
 end
 
 def image_available(name)
@@ -118,6 +115,7 @@ def run_container(name, df)
   if image_available(name)
     x = %w[docker container run -d --name]
     x << name
+    x << dockerfile_run(df)
 
     dockerfile_expose(df).each do |port|
       x << if port.include?(':')
@@ -128,9 +126,6 @@ def run_container(name, df)
     end
 
     dockerfile_volumes(df).each { |volume| x << "-v #{volume}" }
-
-    restart = dockerfile_restart(df)
-    x << "--restart #{restart}" unless restart.nil?
 
     x << name
 
