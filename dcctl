@@ -8,6 +8,11 @@ NAMES = %w[
   compose.yml
 ]
 
+def dropdead(text)
+  puts text
+  exit 1
+end
+
 def usage(cmd)
   puts
 
@@ -19,19 +24,8 @@ def usage(cmd)
   puts 'dcctl up|down|build'
   puts '    up - bring up the services in docker-compose.yaml'
   puts '    down - take down the services in docker-compose.yaml'
-  puts '    build - build images from the projects that have Dockerfiles'
 
   exit 1
-end
-
-def cmd_build(dockerfiles)
-  if dockerfiles.any?
-    dockerfiles.each do |dir|
-      system("cd #{dir}; docker image build -t #{dir} .")
-    end
-  else
-    puts "There are no Dockerfile's to build"
-  end
 end
 
 def cmd_up(compose_found)
@@ -58,7 +52,28 @@ def find_compose
   nil
 end
 
-compose_found = find_compose
+def options
+  opts = {}
+  args = []
+
+  x = ARGV.dup
+  while x.any?
+    o = x.shift
+    if o == '--file'
+      f = x.shift
+      dropdead "Unknown file [#{f}]" unless File.exist?(f)
+      opts['file'] = f
+    else
+      args << o
+    end
+  end
+
+  [opts, args]
+end
+
+opts, args = options
+
+compose_found = opts['file'] || find_compose
 
 found = compose_found ? 'found' : 'not found'
 puts "#{compose_found} file #{found}"
@@ -83,7 +98,6 @@ end
 
 cmd = ARGV.shift
 case cmd
-when 'build' then cmd_build(dockerfiles)
 when 'up', 'start' then cmd_up(compose_found)
 when 'down', 'stop' then cmd_down(compose_found)
 else
