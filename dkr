@@ -49,6 +49,16 @@ def dockerfile_volumes(df)
   volumes
 end
 
+def dockerfile_env(df)
+  envs = []
+
+  File.open(df, 'r').each do |line|
+    envs << line.chomp.split(/\s+/, 2).last if line.start_with?('#ENV')
+  end
+
+  envs
+end
+
 def dockerfile_run(df)
   runtime = []
 
@@ -118,14 +128,11 @@ def run_container(name, df)
     x << dockerfile_run(df)
 
     dockerfile_expose(df).each do |port|
-      x << if port.include?(':')
-             "-p #{port}"
-           else
-             "-p #{port}:#{port}"
-           end
+      x << (port.include?(':') ? "-p #{port}" : "-p #{port}:#{port}")
     end
 
     dockerfile_volumes(df).each { |volume| x << "-v #{volume}" }
+    dockerfile_env(df).each     { |env|    x << "-e #{env}" }
 
     x << name
 
