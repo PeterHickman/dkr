@@ -79,23 +79,6 @@ found = compose_found ? 'found' : 'not found'
 puts "#{compose_found} file #{found}"
 puts
 
-dockerfiles = Dir['**/*/Dockerfile'].map { |file| File.dirname(file) }
-
-if dockerfiles.any?
-  puts 'Projects with Dockerfiles'
-  dockerfiles.each do |proj|
-    puts "    #{proj}"
-  end
-else
-  puts '==> No projects found'
-end
-puts
-
-unless compose_found || dockerfiles.any?
-  puts 'Nothing to work with'
-  exit 1
-end
-
 cmd = ARGV.shift
 case cmd
 when 'up', 'start' then cmd_up(compose_found)
