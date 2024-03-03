@@ -21,9 +21,10 @@ def usage(cmd)
     puts
   end
 
-  puts 'dcctl up|down|build'
+  puts 'dcctl up|down'
   puts '    up - bring up the services in docker-compose.yaml'
   puts '    down - take down the services in docker-compose.yaml'
+  puts '    Add --file to pass a specific docker-compose.yaml file'
 
   exit 1
 end
