@@ -80,7 +80,7 @@ found = compose_found ? 'found' : 'not found'
 puts "#{compose_found} file #{found}"
 puts
 
-cmd = ARGV.shift
+cmd = args
 case cmd
 when 'up', 'start' then cmd_up(compose_found)
 when 'down', 'stop' then cmd_down(compose_found)
