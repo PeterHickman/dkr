@@ -19,4 +19,3 @@ ROOT="0"
 
 inst dkr
 inst dcctl
-inst dexec
