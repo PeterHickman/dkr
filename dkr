@@ -69,6 +69,16 @@ def dockerfile_run(df)
   runtime.join(' ')
 end
 
+def dockerfile_build(df)
+  build = []
+
+  File.open(df, 'r').each do |line|
+    build << line.chomp.split(/\s+/, 2).last if line.start_with?('#BUILD')
+  end
+
+  build.join(' ')
+end
+
 def dockerfile_name(default, df)
   name = default
 
@@ -149,7 +159,14 @@ def build_container(name, df)
   dockerfile_ignore(df)
 
   puts "==> Building #{name.blue}".bold
-  exec("docker image build --file #{df} -t #{name} .")
+  x = %w[docker image build --file]
+  x << df
+  x << '-t'
+  x << name
+  x << dockerfile_build(df)
+  x << '.'
+
+  exec(x.join(' '))
 end
 
 def connect_container(name)
