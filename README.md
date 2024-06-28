@@ -24,8 +24,6 @@ To set a default name that is not the directory that the `Dockerfile` is in use 
 
 To pass arguments to be used to run a container add them with `#RUN`
 
+To pass arguments to be used during a build add them with `#BUILD`
+
 By default `Dockerfile` will be used if it is available in the current directory. The `--file` option will allow you to use another file
-
-# dcctl
-
-Another little tool to build images in a project and handle the `docker-compose.yaml` file
