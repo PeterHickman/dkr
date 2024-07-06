@@ -22,7 +22,7 @@ And another one is `#VOLUME xxx` which will add a `-v xxx` argument when running
 
 To set a default name that is not the directory that the `Dockerfile` is in use `#NAME other_name`
 
-To pass arguments to be used to run a container add them with `#RUN`
+To pass arguments to be used to run a container add them with `#RUN` or `#ENV`
 
 To pass arguments to be used during a build add them with `#BUILD`
 
