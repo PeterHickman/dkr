@@ -10,20 +10,26 @@ Finally the container can be stopped with `dkr stop` and deleted with `dkr delet
 
 For the confident you can build, run and connect all in one go `dkr build run connect` and each command will be executed providing the previous command did not fail. `dkr build run connect stop delete` is also a thing :P
 
-If `dokter` is installed the `lint` command will do a simple audit of your `Dockerfile`. I have included this in hopes that the audit will improve over time
-
-If `trivy` is installed the `scan` command will provide a vulnerability report for the software in the image
-
 ## A little magic
 
-One minor addition I have added is the `#IGNORE` command for the `Dockerfile`. This will add the arguments to the `.dockerignore` file so you can make sure that all the information needed to build a docker image is in one place
+`dkr [--file otherdocker.yml] build|run|connect|stop|delete`
 
-And another one is `#VOLUME xxx` which will add a `-v xxx` argument when running the container
+The optional --file flag will allow you to override the Dockerfile
 
-To set a default name that is not the directory that the `Dockerfile` is in use `#NAME other_name`
+|Command| Description|
+|---|---|
+|`build`|Builds the image from Dockerfile|
+|`run`|Runs the container daemonised|
+|`connect`|Connect to the container|
+|`stop`|Stops container|
+|`delete`|Delete container|
 
-To pass arguments to be used to run a container add them with `#RUN` or `#ENV`
+The dockerfile can contain various extra tags that will
+allow dkr to run things for you
 
-To pass arguments to be used during a build add them with `#BUILD`
-
-By default `Dockerfile` will be used if it is available in the current directory. The `--file` option will allow you to use another file
+|Tag|Description|
+|---|---|
+|`#RUN`|Anything after this will be passed to the run command|
+|`#BUILD`|Anything after this will be passed to the build command|
+|`#IGNORE`|Anything after this will be added to the .dockerignore file|
+|`#NAME`|By default the container name is the same as the directory but this tag will allow you to set a name|

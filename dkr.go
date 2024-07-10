@@ -11,22 +11,36 @@ import (
 	"strings"
 )
 
-func usage(name string) {
-	fmt.Println("dkr build|run|connect|stop|delete")
+var dockerfile string
+
+func usage() {
+	fmt.Println("dkr [--file otherdocker.yml] build|run|connect|stop|delete")
 	fmt.Println()
-	fmt.Printf("  build   - Builds the image [%s] from Dockerfile\n", name)
-	fmt.Printf("  run     - Runs the container [%s] daemonised\n", name)
-	fmt.Printf("  connect - Connect to the container [%s]\n", name)
-	fmt.Printf("  stop    - Stops container [%s]\n", name)
-	fmt.Printf("  delete  - Delete container [%s]\n", name)
+	fmt.Println("The optional --file flag will allow you to override the Dockerfile")
+	fmt.Println()
+	fmt.Println("  build   - Builds the image from Dockerfile")
+	fmt.Println("  run     - Runs the container daemonised")
+	fmt.Println("  connect - Connect to the container")
+	fmt.Println("  stop    - Stops container")
+	fmt.Println("  delete  - Delete container")
 	fmt.Println()
 	fmt.Println("You can chain commands => dkr build run connect")
+	fmt.Println()
+	fmt.Println("The dockerfile can contain various extra tags that will")
+	fmt.Println("allow dkr to run things for you")
+	fmt.Println()
+	fmt.Println("  #RUN    -- Anything after this will be passed to the run command")
+	fmt.Println("  #BUILD  -- Anything after this will be passed to the build command")
+	fmt.Println("  #IGNORE -- Anything after this will be added to the .dockerignore file")
+	fmt.Println("  #NAME   -- By default the container name is the same as the directory")
+	fmt.Println("             but this tag will allow you to set a name")
 
 	os.Exit(1)
 }
 
 func dockerfile_name(dockerfile string) string {
 	var name = ""
+
 	dir, _ := os.Getwd()
 	name = strings.ToLower(filepath.Base(dir))
 
@@ -35,98 +49,13 @@ func dockerfile_name(dockerfile string) string {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.HasPrefix(text, "#NAME") {
-			name = strings.Fields(text)[1]
+		parts := strings.Fields(scanner.Text())
+		if parts[0] == "#NAME" {
+			name = strings.ToLower(parts[1])
 		}
 	}
 
 	return name
-}
-
-func dockerfile_run(dockerfile string) string {
-	var runtime []string
-
-	file, _ := os.Open(dockerfile)
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.HasPrefix(text, "#RUN") {
-			runtime = append(runtime, strings.Join(strings.Fields(text)[1:], " "))
-		}
-	}
-
-	return strings.Join(runtime, " ")
-}
-
-func dockerfile_expose(dockerfile string) []string {
-	ports := []string{}
-
-	file, _ := os.Open(dockerfile)
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.HasPrefix(text, "EXPOSE") {
-			ports = append(ports, strings.Join(strings.Fields(text)[1:], " "))
-		}
-	}
-
-	return ports
-}
-
-func dockerfile_volumes(dockerfile string) []string {
-	volumes := []string{}
-
-	file, _ := os.Open(dockerfile)
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.HasPrefix(text, "#VOLUME") {
-			volumes = append(volumes, strings.Join(strings.Fields(text)[1:], " "))
-		}
-	}
-
-	return volumes
-}
-
-func dockerfile_env(dockerfile string) []string {
-	envs := []string{}
-
-	file, _ := os.Open(dockerfile)
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.HasPrefix(text, "#ENV") {
-			envs = append(envs, strings.Join(strings.Fields(text)[1:], " "))
-		}
-	}
-
-	return envs
-}
-
-func dockerfile_build(dockerfile string) string {
-	build := ""
-
-	file, _ := os.Open(dockerfile)
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.HasPrefix(text, "#BUILD") {
-			build += " " + strings.Join(strings.Fields(text)[1:], " ")
-		}
-	}
-
-	return build
 }
 
 func dockerfile_ignore(dockerfile string) {
@@ -167,6 +96,62 @@ func dockerfile_ignore(dockerfile string) {
 	}
 }
 
+func expose_tag(dockerfile string) string {
+	ports := ""
+
+	file, _ := os.Open(dockerfile)
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		parts := strings.Fields(scanner.Text())
+		if parts[0] == "EXPOSE" {
+			for _, port := range parts[1:] {
+				ports += " -p " + port
+				if !strings.Contains(port, ":") {
+					ports += ":" + port
+				}
+			}
+		}
+	}
+
+	return ports
+}
+
+func run_tag(dockerfile string) string {
+	runtime := ""
+
+	file, _ := os.Open(dockerfile)
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		parts := strings.Fields(scanner.Text())
+		if parts[0] == "#RUN" {
+			runtime += " " + strings.Join(parts[1:], " ")
+		}
+	}
+
+	return runtime
+}
+
+func build_tag(dockerfile string) string {
+	build := ""
+
+	file, _ := os.Open(dockerfile)
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		text := scanner.Text()
+		if strings.HasPrefix(text, "#BUILD") {
+			build += " " + strings.Join(strings.Fields(text)[1:], " ")
+		}
+	}
+
+	return build
+}
+
 func find(cmd, name string) bool {
 	out, _ := toolbox.CommandOutput("docker container " + cmd)
 
@@ -197,26 +182,7 @@ func image_available(name string) bool {
 
 func run_container(name, dockerfile string) {
 	if image_available(name) {
-		x := "docker container run -d --name " + name
-		x += " " + dockerfile_run(dockerfile)
-
-		for _, port := range dockerfile_expose(dockerfile) {
-			if strings.Contains(port, ":") {
-				x += " -p " + port
-			} else {
-				x += " -p " + port + ":" + port
-			}
-		}
-
-		for _, volume := range dockerfile_volumes(dockerfile) {
-			x += " -v " + volume
-		}
-
-		for _, env := range dockerfile_env(dockerfile) {
-			x += " -e " + env
-		}
-
-		x += " " + name
+		x := "docker container run -d --name " + name + " " + run_tag(dockerfile) + expose_tag(dockerfile) + " " + name
 
 		fmt.Println(ac.Bold("==> Running ") + ac.Blue(name))
 
@@ -241,7 +207,7 @@ func build_container(name, dockerfile string) {
 
 	fmt.Println(ac.Bold("==> Building ") + ac.Blue(name))
 
-	x := "docker image build --file " + dockerfile + " -t " + name + " " + dockerfile_build(dockerfile) + " ."
+	x := "docker image build --file " + dockerfile + " -t " + name + " " + build_tag(dockerfile) + " ."
 
 	toolbox.Command(x)
 }
@@ -266,25 +232,23 @@ func delete_container(name string) {
 	}
 }
 
-func main() {
-	var override = flag.String("file", "", "Use this Dockerfile")
-	var dockerfile = "Dockerfile"
-
+func init() {
+	var d = flag.String("file", "Dockerfile", "Use this Dockerfile")
 	flag.Parse()
 
-	if *override != "" {
-		dockerfile = *override
-	}
+	dockerfile = *d
 
 	if !toolbox.FileExists(dockerfile) {
-		fmt.Printf(ac.Red("There is no docker file called %s here\n"), dockerfile)
-		os.Exit(1)
+		fmt.Printf(ac.Red("There is no docker file called %s here\n\n"), dockerfile)
+		usage()
 	}
+}
 
+func main() {
 	name := dockerfile_name(dockerfile)
 
 	if len(flag.Args()) == 0 {
-		usage(name)
+		usage()
 	}
 
 	for _, cmd := range flag.Args() {
@@ -300,7 +264,7 @@ func main() {
 		case "delete":
 			delete_container(name)
 		default:
-			usage(name)
+			usage()
 		}
 	}
 }
