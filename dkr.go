@@ -185,6 +185,7 @@ func run_container(name, dockerfile string) {
 		x := "docker container run -d --name " + name + " " + run_tag(dockerfile) + expose_tag(dockerfile) + " " + name
 
 		fmt.Println(ac.Bold("==> Running ") + ac.Blue(name))
+		fmt.Println(ac.Green(x))
 
 		toolbox.Command(x)
 	} else {
@@ -195,8 +196,12 @@ func run_container(name, dockerfile string) {
 
 func stop_container(name string) {
 	if find("ps", name) {
+		x := "docker container stop " + name
+
 		fmt.Println(ac.Bold("==> Stopping " + ac.Blue(name)))
-		toolbox.Command("docker container stop " + name)
+		fmt.Println(ac.Green(x))
+
+		toolbox.Command(x)
 	} else {
 		fmt.Println(ac.Bold("==> ") + ac.Blue(name) + ac.Bold(" is not running"))
 	}
@@ -205,26 +210,29 @@ func stop_container(name string) {
 func build_container(name, dockerfile string) {
 	dockerfile_ignore(dockerfile)
 
-	fmt.Println(ac.Bold("==> Building ") + ac.Blue(name))
-
 	x := "docker image build --file " + dockerfile + " -t " + name + " " + build_tag(dockerfile) + " ."
+
+	fmt.Println(ac.Bold("==> Building ") + ac.Blue(name))
+	fmt.Println(ac.Green(x))
 
 	toolbox.Command(x)
 }
 
 func connect_container(name string) {
-	fmt.Println(ac.Bold("==> Connecting to ") + ac.Blue(name))
-
 	x := "docker container exec -it " + name + " /bin/bash"
+
+	fmt.Println(ac.Bold("==> Connecting to ") + ac.Blue(name))
+	fmt.Println(ac.Green(x))
 
 	toolbox.Command(x)
 }
 
 func delete_container(name string) {
 	if find("ls -a", name) {
-		fmt.Println(ac.Bold("==> Deleting ") + ac.Blue(name))
-
 		x := "docker container rm --force " + name
+
+		fmt.Println(ac.Bold("==> Deleting ") + ac.Blue(name))
+		fmt.Println(ac.Green(x))
 
 		toolbox.Command(x)
 	} else {
