@@ -50,7 +50,7 @@ func dockerfile_name(dockerfile string) string {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		parts := strings.Fields(scanner.Text())
-		if parts[0] == "#NAME" {
+		if len(parts) > 1 && parts[0] == "#NAME" {
 			name = strings.ToLower(parts[1])
 		}
 	}
@@ -65,9 +65,9 @@ func dockerfile_ignore(dockerfile string) {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.HasPrefix(text, "#IGNORE") {
-			ignores = append(ignores, strings.Fields(text)[1])
+		parts := strings.Fields(scanner.Text())
+		if len(parts) > 1 && parts[0] == "#IGNORE" {
+			ignores = append(ignores, parts[1])
 		}
 	}
 
@@ -105,7 +105,7 @@ func expose_tag(dockerfile string) string {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		parts := strings.Fields(scanner.Text())
-		if parts[0] == "EXPOSE" {
+		if len(parts) > 1 && parts[0] == "EXPOSE" {
 			for _, port := range parts[1:] {
 				ports += " -p " + port
 				if !strings.Contains(port, ":") {
@@ -127,7 +127,7 @@ func run_tag(dockerfile string) string {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		parts := strings.Fields(scanner.Text())
-		if parts[0] == "#RUN" {
+		if len(parts) > 1 && parts[0] == "#RUN" {
 			runtime += " " + strings.Join(parts[1:], " ")
 		}
 	}
@@ -143,9 +143,9 @@ func build_tag(dockerfile string) string {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.HasPrefix(text, "#BUILD") {
-			build += " " + strings.Join(strings.Fields(text)[1:], " ")
+		parts := strings.Fields(scanner.Text())
+		if len(parts) > 1 && parts[0] == "#BUILD" {
+			build += " " + strings.Join(parts[1:], " ")
 		}
 	}
 
@@ -268,3 +268,4 @@ func main() {
 		}
 	}
 }
+
