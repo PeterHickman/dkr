@@ -39,10 +39,8 @@ func usage() {
 }
 
 func dockerfile_name(dockerfile string) string {
-	var name = ""
-
 	dir, _ := os.Getwd()
-	name = strings.ToLower(filepath.Base(dir))
+    name := strings.ToLower(filepath.Base(dir))
 
 	file, _ := os.Open(dockerfile)
 	defer file.Close()
