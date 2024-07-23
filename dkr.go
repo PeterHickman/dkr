@@ -8,6 +8,7 @@ import (
 	"github.com/PeterHickman/toolbox"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -40,7 +41,7 @@ func usage() {
 
 func dockerfile_name(dockerfile string) string {
 	dir, _ := os.Getwd()
-    name := strings.ToLower(filepath.Base(dir))
+	name := strings.ToLower(filepath.Base(dir))
 
 	file, _ := os.Open(dockerfile)
 	defer file.Close()
@@ -81,17 +82,20 @@ func dockerfile_ignore(dockerfile string) {
 
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
-			ignores = append(ignores, scanner.Text())
+			t := scanner.Text()
+			if !slices.Contains(ignores, t) {
+				ignores = append(ignores, t)
+			}
 		}
 	}
 
 	file, _ = os.Create(".dockerignore")
-	defer file.Close()
 
-	w := bufio.NewWriter(file)
 	for _, line := range ignores {
-		fmt.Fprintln(w, line)
+		file.WriteString(fmt.Sprintf("%s\n", line))
 	}
+
+	file.Close()
 }
 
 func expose_tag(dockerfile string) string {
