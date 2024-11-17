@@ -1,12 +1,13 @@
 #!/bin/sh
 
 BINARY='/usr/local/bin'
+APP=dkr
 
-echo "Building dkr"
-go build dkr.go
+echo "Building $APP"
+go build -ldflags="-s -w" $APP.go
 
-echo "Installing dkr to $BINARY"
-install -v dkr $BINARY
+echo "Installing $APP to $BINARY"
+install $APP $BINARY
 
 echo "Removing the build"
-rm dkr
+rm $APP
